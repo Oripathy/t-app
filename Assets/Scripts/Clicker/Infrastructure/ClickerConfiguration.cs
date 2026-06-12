@@ -6,8 +6,6 @@ namespace Clicker.Infrastructure
     [CreateAssetMenu(fileName = "ClickerConfiguration", menuName = "Configurations/ClickerConfiguration")]
     public class ClickerConfiguration : ScriptableObject, IClickerConfiguration
     {
-        // [SerializeField] private ClickerView _viewPrefab;
-        
         [Header("Currency")]
         [SerializeField] private int _clickReward;
         [SerializeField] private int _autoClickReward;
@@ -20,6 +18,10 @@ namespace Clicker.Infrastructure
         [SerializeField] private int _maxEnergyAmount;
         [SerializeField] private int _energyRestorationValue;
         [SerializeField] private float _energyRestorationDelay;
+        
+        [Space]
+        [Header("Animations")]
+        [SerializeField] private float _animationDuration;
 
         public int ClickReward => _clickReward;
         public int AutoClickReward => _autoClickReward;
@@ -29,5 +31,6 @@ namespace Clicker.Infrastructure
         public int MaxEnergyAmount => _maxEnergyAmount;
         public int EnergyRestorationValue => _energyRestorationValue;
         public float EnergyRestorationDelay => _energyRestorationDelay;
+        public float AnimationDuration => _animationDuration;
     }
 }

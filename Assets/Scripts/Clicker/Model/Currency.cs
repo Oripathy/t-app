@@ -20,12 +20,11 @@ namespace Clicker.Model
                 return;
             }
 
-            if (long.MaxValue - Value < value)
-            {
-                value = long.MaxValue;
-            }
+            var result = long.MaxValue - Value < value
+                ? long.MaxValue
+                : Value + value;
             
-            SetValue(value);
+            SetValue(result);
         }
 
         public bool Remove(long value)

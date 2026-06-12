@@ -7,7 +7,7 @@ namespace Clicker
     {
         public override void InstallBindings()
         {
-            Container.Bind<ClickerConfiguration>().FromScriptableObjectResource("Configurations/ClickerConfiguration").AsSingle();
+            Container.BindInterfacesAndSelfTo<ClickerConfiguration>().FromScriptableObjectResource("Configurations/ClickerConfiguration").AsSingle();
         }
     }
 }

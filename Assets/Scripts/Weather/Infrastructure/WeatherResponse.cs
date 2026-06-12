@@ -1,28 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace Weather.Infrastructure
 {
-    [Serializable]
     public class WeatherResponse
     {
-        public WeatherProperties properties;
+        [JsonProperty("properties")]
+        public WeatherProperties Properties { get; set; }
     }
 
-    [Serializable]
     public class WeatherProperties
     {
-        public List<WeatherPeriod> periods;
+        [JsonProperty("periods")]
+        public List<WeatherPeriod> Periods { get; set; }
     }
 
-    [Serializable]
     public class WeatherPeriod
     {
-        public int number;
-        public string name;
-        public int temperature;
-        public string temperatureUnit;
-        public string shortForecast;
-        public string detailedForecast;
+        [JsonProperty("temperature")]
+        public int Temperature { get; set; }
+        [JsonProperty("temperatureUnit")]
+        public string Unit { get; set; }
     }
 }

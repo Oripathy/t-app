@@ -5,18 +5,18 @@ namespace Clicker.Model
 {
     public class ClickerModel
     {
-        public Currency Currency { get; }
-        public Energy Energy { get; }
+        public Currency Currency { get; private set; }
+        public Energy Energy { get; private set; }
         public TimeSpan RemainingAutoClickRewardDelay { get; private set; }
         public TimeSpan RemainingEnergyRestorationDelay { get; private set; }
         public IClickerConfiguration Configuration { get; }
 
-        public ClickerModel(Currency currency, Energy energy, TimeSpan remainingAutoClickRewardDelay, TimeSpan remainingEnergyRestorationDelay, IClickerConfiguration configuration)
+        public ClickerModel(IClickerConfiguration configuration)
         {
-            Currency = currency;
-            Energy = energy;
-            RemainingAutoClickRewardDelay = remainingAutoClickRewardDelay;
-            RemainingEnergyRestorationDelay = remainingEnergyRestorationDelay;
+            Currency = new Currency(0);
+            Energy = new Energy(configuration.InitialEnergyAmount, configuration.MaxEnergyAmount);
+            RemainingAutoClickRewardDelay = TimeSpan.FromSeconds(configuration.AutoClickRewardDelay);
+            RemainingEnergyRestorationDelay = TimeSpan.FromSeconds(configuration.EnergyRestorationDelay);
             Configuration = configuration;
         }
 

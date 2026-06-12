@@ -29,7 +29,6 @@ namespace Weather.Infrastructure
         public void Initialize()
         {
             _tokenSource = new CancellationTokenSource();
-            StartWeatherCheckup(); // TODO REMOVE
         }
 
         public void Dispose()
@@ -38,7 +37,7 @@ namespace Weather.Infrastructure
             _tokenSource?.Dispose();
         }
 
-        private void StartWeatherCheckup()
+        public void StartWeatherCheckup()
         {
             if (_isRunning)
             {
@@ -50,27 +49,30 @@ namespace Weather.Infrastructure
             CheckupWeather().Forget();
         }
 
-        private void StopWeatherCheckup()
+        public void StopWeatherCheckup()
         {
             _tokenSource?.Cancel();
             _tokenSource?.Dispose();
+            _tokenSource = null;
             _isRunning = false;
         }
 
         private async UniTaskVoid CheckupWeather()
         {
-            try
+            var token = _tokenSource.Token;
+            while (!token.IsCancellationRequested)
             {
-                while (!_tokenSource.IsCancellationRequested)
+                try
                 {
-                    var result = await _requestSender.SendRequest(RequestFactory, _tokenSource.Token);
+                    var result = await _requestSender.SendRequest(RequestFactory, token);
                     HandleResponse(result);
-                    await UniTask.Delay(TimeSpan.FromSeconds(_weatherConfiguration.RequestDelay), cancellationToken: _tokenSource.Token);
+                    await UniTask.Delay(TimeSpan.FromSeconds(_weatherConfiguration.RequestDelay),
+                        cancellationToken: token);
                 }
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning(e);
+                catch (Exception e)
+                {
+                    Debug.Log(e);
+                }
             }
 
             return;
@@ -86,16 +88,15 @@ namespace Weather.Infrastructure
         private void HandleResponse(UnityWebRequestResult result)
         {
             var response = JsonConvert.DeserializeObject<WeatherResponse>(result.Text);
-            if (response?.properties == null || response.properties.periods.Count == 0)
+            if (response?.Properties == null || response.Properties.Periods.Count == 0)
             {
                 Debug.LogWarning("No periods found");
                 return;
             }
             
-            var currentTemperature = response.properties.periods[0].temperature;
-            var unit = response.properties.periods[0].temperatureUnit;
-            Debug.Log($"Temperature: {currentTemperature} {unit}");
-            // UpdateModel
+            var temperature = response.Properties.Periods[0].Temperature;
+            var unit = response.Properties.Periods[0].Unit;
+            _weatherModel.Update(temperature, unit);
         }
     }
 }

@@ -10,5 +10,6 @@
         int MaxEnergyAmount { get; }
         int EnergyRestorationValue { get; }
         float EnergyRestorationDelay { get; }
+        float AnimationDuration { get; }
     }
 }
