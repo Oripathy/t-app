@@ -12,6 +12,7 @@ namespace Dogs.Presentation
         [SerializeField] private float _mainPartOffset;
         [SerializeField] private float _duration;
         [SerializeField] private ParticleSystem _particleSystem;
+        [SerializeField] private AudioSource _audioSource;
 
         private Sequence _sequence;
         
@@ -40,6 +41,7 @@ namespace Dogs.Presentation
             _sequence?.Kill();
             _particleSystem.Stop();
             _particleSystem.Play();
+            _audioSource.Play();
             _sequence = DOTween.Sequence()
                 .Append(_mainPart.rectTransform.DOAnchorPosY(-_mainPartOffset, GetPressDuration()))
                 .Append(_mainPart.rectTransform.DOAnchorPosY(0f, _duration));
