@@ -6,7 +6,7 @@ namespace Clicker.Model
     {
         public long Value { get; private set; }
 
-        public event Action<Currency> ValueChanged;
+        public event Action<Currency, CurrencyChangeType> ValueChanged;
 
         public Currency(long value)
         {
@@ -24,7 +24,7 @@ namespace Clicker.Model
                 ? long.MaxValue
                 : Value + value;
             
-            SetValue(result);
+            SetValue(result, CurrencyChangeType.Increase);
         }
 
         public bool Remove(long value)
@@ -34,10 +34,10 @@ namespace Clicker.Model
                 return false;
             }
 
-            return SetValue(Value - value);
+            return SetValue(Value - value, CurrencyChangeType.Decrease);
         }
 
-        private bool SetValue(long value)
+        private bool SetValue(long value, CurrencyChangeType changeType)
         {
             var clampedValue = Math.Max(0, value);
             if (Value == clampedValue)
@@ -46,8 +46,14 @@ namespace Clicker.Model
             }
 
             Value = clampedValue;
-            ValueChanged?.Invoke(this);
+            ValueChanged?.Invoke(this, changeType);
             return true;
         }
+    }
+
+    public enum CurrencyChangeType
+    {
+        Increase = 0,
+        Decrease = 1,
     }
 }

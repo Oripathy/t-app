@@ -12,6 +12,8 @@ namespace Clicker.Presentation
         [SerializeField] private TMP_Text _counter;
 
         private long _counterValue;
+        
+        public RectTransform IconTransform => _iconTransform;
 
         public void Initialize(long value)
         {

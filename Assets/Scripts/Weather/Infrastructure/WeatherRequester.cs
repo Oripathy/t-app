@@ -64,17 +64,27 @@ namespace Weather.Infrastructure
             {
                 try
                 {
-                    var result = await _requestSender.SendRequest(RequestFactory, token);
-                    HandleResponse(result);
-                    await UniTask.Delay(TimeSpan.FromSeconds(_weatherConfiguration.RequestDelay),
-                        cancellationToken: token);
+                    await RequestWeather(token);
                 }
                 catch (Exception e)
                 {
                     Debug.Log(e);
                 }
-            }
 
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                await UniTask.Delay(TimeSpan.FromSeconds(_weatherConfiguration.RequestDelay), cancellationToken: token)
+                    .SuppressCancellationThrow();
+            }
+        }
+
+        private async UniTask RequestWeather(CancellationToken token)
+        {
+            var result = await _requestSender.SendRequest(RequestFactory, "Receiving Weather", token);
+            HandleResponse(result);
             return;
             
             UnityWebRequest RequestFactory()

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
@@ -31,12 +33,15 @@ namespace Dogs.Presentation
         public void Activate()
         {
             View.gameObject.SetActive(true);
+            _tokenSource =  new CancellationTokenSource();
             RequestBreeds().Forget();
         }
 
         public void Deactivate()
         {
             View.gameObject.SetActive(false);
+            View.BreedPopup.Hide();
+            _processingId = string.Empty;
             _tokenSource?.Cancel();
             _tokenSource?.Dispose();
             _tokenSource = null;
@@ -51,8 +56,27 @@ namespace Dogs.Presentation
 
         private async UniTaskVoid RequestBreeds()
         {
-            _tokenSource =  new CancellationTokenSource();
-            await _breedsRequester.RequestBreeds(1, _tokenSource.Token);
+            if (Model.Breeds.Any())
+            {
+                CreateButtons();
+                return;
+            }
+            
+            try
+            {
+                var token = _tokenSource.Token;
+                await _breedsRequester.RequestBreeds(1, token);
+                token.ThrowIfCancellationRequested();
+                CreateButtons();
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e);
+            }
+        }
+
+        private void CreateButtons()
+        {
             foreach (var breed in Model.Breeds)
             {
                 var button = _breedButtonPool.Spawn();
@@ -75,15 +99,30 @@ namespace Dogs.Presentation
             }
 
             _processingId = id;
-            if (breed.Info == null)
+            _tokenSource?.Cancel();
+            _tokenSource?.Dispose();
+            _tokenSource = new CancellationTokenSource();
+            if (breed.Info != null)
             {
-                Debug.LogWarning("Requesting data");
-                var description = await _breedsRequester.RequestBreedData(id, _tokenSource.Token);
-                breed.AddInfo(description);
+                _processingId = string.Empty;
+                View.BreedPopup.Show(breed.Name, breed.Info.Description);
+                return;
             }
-
-            Debug.LogWarning("Showing popup");
-            _processingId = string.Empty;
+            
+            try
+            {
+                var description = await _breedsRequester.RequestBreedDescription(id, _tokenSource.Token);
+                breed.AddInfo(description);
+                View.BreedPopup.Show(breed.Name, description);
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e);
+            }
+            finally
+            {
+                _processingId = string.Empty;
+            }
         }
     }
 }

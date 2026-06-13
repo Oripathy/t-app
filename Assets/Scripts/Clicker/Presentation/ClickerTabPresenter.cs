@@ -8,12 +8,14 @@ using MainUI;
 using MainUI.Presentation;
 using UnityEngine;
 using Zenject;
+using Random = UnityEngine.Random;
 
 namespace Clicker.Presentation
 {
     public class ClickerTabPresenter : Presenter<ClickerModel, ClickerTabView>, ITab, ITickable
     {
         private readonly IClickerConfiguration _clickerConfiguration;
+        private readonly Coin.Pool _coinPool;
         
         private bool _isActive;
         private CancellationTokenSource _currencyTokenSource;
@@ -21,27 +23,35 @@ namespace Clicker.Presentation
         
         public TabType TabType => TabType.Clicker;
 
-        public ClickerTabPresenter(ClickerModel model, IClickerConfiguration clickerConfiguration) : base(model)
+        public ClickerTabPresenter(ClickerModel model, IClickerConfiguration clickerConfiguration, Coin.Pool coinPool) : base(model)
         {
             _clickerConfiguration = clickerConfiguration;
+            _coinPool = coinPool;
             Model.Currency.ValueChanged += OnCurrencyChanged;
             Model.Energy.ValueChanged += OnEnergyChanged;
+            Model.AutoClickRewardReceived += ClickButton;
         }
         
         public override void SetView(ClickerTabView view)
         {
             base.SetView(view);
-            
-            View.Button.onClick.AddListener(OnButtonClicked);
+
+            View.Button.Clicked += OnButtonClicked;
         }
 
         public override void Dispose()
         {
             base.Dispose();
             
-            View.Button.onClick.RemoveListener(OnButtonClicked);
+            View.Button.Clicked -= OnButtonClicked;
             Model.Currency.ValueChanged -= OnCurrencyChanged;
             Model.Energy.ValueChanged -= OnEnergyChanged;
+            Model.AutoClickRewardReceived -= ClickButton;
+            
+            _currencyTokenSource?.Cancel();
+            _currencyTokenSource?.Dispose();
+            _energyTokenSource?.Cancel();
+            _energyTokenSource?.Dispose();
         }
 
         public void Activate()
@@ -68,24 +78,49 @@ namespace Clicker.Presentation
             Model.HandleClick();
         }
 
-        private void OnCurrencyChanged(Currency currency)
+        private async void OnCurrencyChanged(Currency currency, CurrencyChangeType changeType)
         {
             if (!_isActive)
             {
                 return;
             }
+
+            if (changeType == CurrencyChangeType.Decrease)
+            {
+                _currencyTokenSource?.Cancel();
+                _currencyTokenSource?.Dispose();
+                _currencyTokenSource = new CancellationTokenSource();
             
-            _currencyTokenSource?.Cancel();
-            _currencyTokenSource?.Dispose();
-            _currencyTokenSource = new CancellationTokenSource();
-            
+                try
+                {
+                    await View.CurrencyWidget.SetValue(currency.Value, _clickerConfiguration.AnimationDuration, _currencyTokenSource.Token);
+                    return;
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+
+            Coin coin = null;
             try
             {
-                View.CurrencyWidget.SetValue(currency.Value, _clickerConfiguration.AnimationDuration, _currencyTokenSource.Token)
-                    .Forget();
+                _currencyTokenSource ??=  new CancellationTokenSource();
+                coin = _coinPool.Spawn();
+                coin.transform.SetParent(View.transform);
+                coin.transform.localScale = Vector3.one;
+                coin.transform.position = Random.insideUnitCircle + View.Button.MainPartPosition;
+                await coin.MoveTo(View.CurrencyWidget.IconTransform.position, _clickerConfiguration.CoinAnimationDuration, _currencyTokenSource.Token);
+                await View.CurrencyWidget.SetValue(currency.Value, _clickerConfiguration.AnimationDuration, _currencyTokenSource.Token);
             }
-            catch (OperationCanceledException e)
+            catch (OperationCanceledException)
             {
+            }
+            finally
+            {
+                if (coin)
+                {
+                    _coinPool.Despawn(coin);
+                }
             }
         }
 
@@ -108,6 +143,16 @@ namespace Clicker.Presentation
             catch (OperationCanceledException e)
             {
             }
+        }
+
+        private void ClickButton()
+        {
+            if (!_isActive)
+            {
+                return;
+            }
+            
+            View.Button.Click();
         }
     }
 }

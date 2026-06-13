@@ -11,6 +11,8 @@ namespace Clicker.Model
         public TimeSpan RemainingEnergyRestorationDelay { get; private set; }
         public IClickerConfiguration Configuration { get; }
 
+        public event Action AutoClickRewardReceived;
+
         public ClickerModel(IClickerConfiguration configuration)
         {
             Currency = new Currency(0);
@@ -31,14 +33,15 @@ namespace Clicker.Model
             UpdateEnergyRestorationDelay(deltaTime);
         }
 
-        private void HandleClick(long reward)
+        private bool HandleClick(long reward)
         {
             if (!Energy.Remove(Configuration.ClickCost))
             {
-                return;
+                return false;
             }
             
             Currency.Add(reward);
+            return true;
         }
 
         private void UpdateRewardDelay(float deltaTime)
@@ -54,7 +57,12 @@ namespace Clicker.Model
                 return;
             }
             
-            HandleClick(Configuration.AutoClickReward);
+            var result = HandleClick(Configuration.AutoClickReward);
+            if (result)
+            {
+                AutoClickRewardReceived?.Invoke();
+            }
+            
             RemainingAutoClickRewardDelay = TimeSpan.FromSeconds(Configuration.AutoClickRewardDelay);
         }
 

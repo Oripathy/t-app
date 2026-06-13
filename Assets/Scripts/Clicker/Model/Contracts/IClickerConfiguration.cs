@@ -11,5 +11,6 @@
         int EnergyRestorationValue { get; }
         float EnergyRestorationDelay { get; }
         float AnimationDuration { get; }
+        float CoinAnimationDuration { get; }
     }
 }

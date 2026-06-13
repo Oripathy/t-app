@@ -21,3 +21,4 @@ MonoBehaviour:
   _energyRestorationValue: 10
   _energyRestorationDelay: 10
   _animationDuration: 0.25
+  _coinAnimationDuration: 0.3

@@ -8,8 +8,6 @@ namespace Dogs.Model
         private readonly Dictionary<string, BreedModel> _cachedBreeds = new Dictionary<string, BreedModel>();
         
         public IEnumerable<BreedModel> Breeds => _cachedBreeds.Values;
-        
-        public event Action BreedsAdded;
 
         public void AddBreeds(List<BreedDto> breedsDto)
         {
@@ -17,8 +15,6 @@ namespace Dogs.Model
             {
                 _cachedBreeds.TryAdd(dto.Id, new BreedModel(dto.Id, dto.Name));
             }
-            
-            BreedsAdded?.Invoke();
         }
 
         public bool TryGetBreed(string id, out BreedModel breed)

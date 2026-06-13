@@ -9,10 +9,13 @@ namespace Core
 {
     public class RequestSender : IInitializable, IDisposable
     {
-        private readonly Queue<Func<UniTask>> _requestsQueue = new Queue<Func<UniTask>>();
+        private readonly LinkedList<RequestEntry> _requestsQueue = new LinkedList<RequestEntry>();
         private CancellationTokenSource _globalTokenSource;
 
         private bool _isProcessing;
+
+        public event Action<string> RequestSent;
+        public event Action<string> RequestProcessed;
 
         public void Initialize()
         {
@@ -23,24 +26,53 @@ namespace Core
         {
             _globalTokenSource?.Cancel();
             _globalTokenSource?.Dispose();
+            foreach (var entry in _requestsQueue)
+            {
+                entry.Registration.Dispose();
+                entry.CompletionSource.TrySetCanceled(entry.Token);
+            }
+            
             _requestsQueue.Clear();
         }
 
-        public UniTask<UnityWebRequestResult> SendRequest(Func<UnityWebRequest> requestFactory, CancellationToken token)
+        public UniTask<UnityWebRequestResult> SendRequest(Func<UnityWebRequest> requestFactory, string name,
+            CancellationToken token)
         {
-            using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_globalTokenSource.Token, token);
             var completionSource = new UniTaskCompletionSource<UnityWebRequestResult>();
-            var linkedToken = linkedTokenSource.Token;
-            _requestsQueue.Enqueue(TaskRoutine);
+            if (token.IsCancellationRequested)
+            {
+                completionSource.TrySetCanceled(token);
+                return completionSource.Task;
+            }
+            
+            var entry = new RequestEntry()
+            {
+                CompletionSource = completionSource,
+                Token = token,
+                TaskFactory = TaskFactory
+            };
+            
+            entry.Node = _requestsQueue.AddLast(entry);
+            entry.Registration = token.Register(() =>
+            {
+                _requestsQueue.Remove(entry.Node);
+                entry.Registration.Dispose();
+                entry.CompletionSource.TrySetCanceled(token);
+            });
+            
             ProcessQueue().Forget();
             return completionSource.Task;
 
-            async UniTask TaskRoutine()
+            async UniTask TaskFactory()
             {
                 try
                 {
+                    using var linkedTokenSource =
+                        CancellationTokenSource.CreateLinkedTokenSource(_globalTokenSource.Token, token);
+                    var linkedToken = linkedTokenSource.Token;
                     linkedToken.ThrowIfCancellationRequested();
-                    var request = requestFactory();
+                    using var request = requestFactory();
+                    RequestSent?.Invoke(name);
                     await request.SendWebRequest().ToUniTask(cancellationToken: linkedToken);
                     var result = new UnityWebRequestResult(
                         request.result == UnityWebRequest.Result.Success,
@@ -59,6 +91,10 @@ namespace Core
                 {
                     completionSource.TrySetException(e);
                 }
+                finally
+                {
+                    RequestProcessed?.Invoke(name);
+                }
             }
         }
 
@@ -72,9 +108,12 @@ namespace Core
             _isProcessing = true;
             try
             {
-                while (_requestsQueue.TryDequeue(out var taskFactory))
+                while (_requestsQueue.Count > 0)
                 {
-                    await taskFactory();
+                    var entry = _requestsQueue.First.Value;
+                    _requestsQueue.RemoveFirst();
+                    await entry.Registration.DisposeAsync();
+                    await entry.TaskFactory();
                     await UniTask.Yield();
                 }
             }
@@ -82,6 +121,15 @@ namespace Core
             {
                 _isProcessing = false;
             }
+        }
+
+        private class RequestEntry
+        {
+            public Func<UniTask> TaskFactory { get; set; }
+            public CancellationToken Token { get; set; }
+            public UniTaskCompletionSource<UnityWebRequestResult> CompletionSource { get; set; }
+            public LinkedListNode<RequestEntry> Node { get; set; }
+            public CancellationTokenRegistration Registration { get; set; }
         }
     }
 

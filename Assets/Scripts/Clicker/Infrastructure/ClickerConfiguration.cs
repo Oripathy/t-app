@@ -22,6 +22,7 @@ namespace Clicker.Infrastructure
         [Space]
         [Header("Animations")]
         [SerializeField] private float _animationDuration;
+        [SerializeField] private float _coinAnimationDuration;
 
         public int ClickReward => _clickReward;
         public int AutoClickReward => _autoClickReward;
@@ -32,5 +33,6 @@ namespace Clicker.Infrastructure
         public int EnergyRestorationValue => _energyRestorationValue;
         public float EnergyRestorationDelay => _energyRestorationDelay;
         public float AnimationDuration => _animationDuration;
+        public float CoinAnimationDuration => _coinAnimationDuration;
     }
 }

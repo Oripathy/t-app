@@ -1,14 +1,10 @@
-﻿using System;
-
-namespace Dogs.Model
+﻿namespace Dogs.Model
 {
     public class BreedModel
     {
         public string Id { get; }
         public string Name { get; }
         public BreedInfo Info { get; private set; }
-
-        public event Action<BreedModel> BreedInfoAdded;
 
         public BreedModel(string id, string name)
         {
@@ -24,7 +20,6 @@ namespace Dogs.Model
             }
             
             Info = new BreedInfo(description);
-            BreedInfoAdded?.Invoke(this);
         }
     }
 }

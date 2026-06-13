@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
 using Dogs.Model;
 using Newtonsoft.Json;
-using UnityEngine;
 using UnityEngine.Networking;
-using Zenject;
 
 namespace Dogs.Infrastructure
 {
@@ -28,14 +25,15 @@ namespace Dogs.Infrastructure
         public async UniTask RequestBreeds(int page, CancellationToken token)
         {
             var uri = $"{_dogsConfiguration.Uri}/breeds?page[number]={page}&page[size]={_dogsConfiguration.PageSize}";
-            var result = await _requestSender.SendRequest(() => GetRequest(uri), token);
+            var result = await _requestSender.SendRequest(() => GetRequest(uri), "Receiving Breeds", token);
             HandleBreedsCollection(result);
         }
 
-        public async UniTask<string> RequestBreedData(string id, CancellationToken token)
+        public async UniTask<string> RequestBreedDescription(string id, CancellationToken token)
         {
+            var name = _dogsModel.TryGetBreed(id, out var breed) ? breed.Name : string.Empty;
             var uri = $"{_dogsConfiguration.Uri}/breeds/{id}";
-            var result = await _requestSender.SendRequest(() => GetRequest(uri), token);
+            var result = await _requestSender.SendRequest(() => GetRequest(uri), $"Receiving Description of {name}", token);
             return HandleBreedData(result);
         }
 
@@ -48,16 +46,9 @@ namespace Dogs.Infrastructure
 
         private void HandleBreedsCollection(UnityWebRequestResult result)
         {
-            try
-            {
-                var response = JsonConvert.DeserializeObject<DogsResponse<List<Breed>>>(result.Text);
-                var dtos = response.Data.Select(x => new BreedDto(x.Id, x.Attributes.Name)).ToList();
-                _dogsModel.AddBreeds(dtos);
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning(e);
-            }
+            var response = JsonConvert.DeserializeObject<DogsResponse<List<Breed>>>(result.Text);
+            var dtos = response.Data.Select(x => new BreedDto(x.Id, x.Attributes.Name)).ToList();
+            _dogsModel.AddBreeds(dtos);
         }
 
         private string HandleBreedData(UnityWebRequestResult result)
