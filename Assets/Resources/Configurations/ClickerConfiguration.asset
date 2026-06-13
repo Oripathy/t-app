@@ -16,7 +16,7 @@ MonoBehaviour:
   _autoClickReward: 1
   _autoClickRewardDelay: 3
   _clickCost: 1
-  _initialEnergyAmount: 5
+  _initialEnergyAmount: 1000
   _maxEnergyAmount: 1000
   _energyRestorationValue: 10
   _energyRestorationDelay: 10
