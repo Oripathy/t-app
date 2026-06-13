@@ -11,7 +11,7 @@ namespace Dogs.Presentation
         [SerializeField] private TMP_Text _description;
         [SerializeField] private Button _okButton;
         [SerializeField] private LayoutElement _descriptionLayout;
-        [SerializeField] private CanvasGroup _canvasGroup;
+        [SerializeField] private RectTransform _container;
         [SerializeField] private int _maxHeight = 500;
 
         public void Show(string header, string description)
@@ -23,7 +23,7 @@ namespace Dogs.Presentation
             var height = Math.Min(_description.preferredHeight, _maxHeight);
             _descriptionLayout.preferredHeight = height;
             _okButton.onClick.AddListener(Hide);
-            LayoutRebuilder.ForceRebuildLayoutImmediate(transform as RectTransform);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_container);
         }
 
         public void Hide()
